@@ -200,6 +200,7 @@ void menuEnter() {
 void menuExit() {
   menuOpen = false;
   saveSettings();
+  display.clearScreen(); // wipe menu remnants before repainting the UI
   applySettings();
   display.pattern(decoder.pattern());
   display.refreshText();

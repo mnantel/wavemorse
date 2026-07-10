@@ -66,6 +66,8 @@ public:
 
   void refreshText() { render(); }
 
+  void clearScreen() { _gfx->fillScreen(RGB565_BLACK); }
+
   // Full-screen settings menu. sel highlights one of the 5 rows.
   void menu(uint8_t sel, uint8_t wpm, bool iambicB, bool midiPaddle,
             bool swapped, bool tone) {
