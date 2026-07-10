@@ -64,6 +64,40 @@ public:
     render();
   }
 
+  void refreshText() { render(); }
+
+  // Full-screen settings menu. sel highlights one of the 5 rows.
+  void menu(uint8_t sel, uint8_t wpm, bool iambicB, bool midiPaddle,
+            bool swapped, bool tone) {
+    _gfx->fillScreen(RGB565_BLACK);
+    _gfx->fillRect(0, 0, 320, 20, RGB565_DARKCYAN);
+    _gfx->setTextColor(RGB565_WHITE);
+    _gfx->setTextSize(2);
+    _gfx->setCursor(4, 3);
+    _gfx->print("SETTINGS");
+    char rows[5][28];
+    snprintf(rows[0], 28, "Speed     %d WPM", wpm);
+    snprintf(rows[1], 28, "Iambic    %s", iambicB ? "B" : "A");
+    snprintf(rows[2], 28, "MIDI      %s", midiPaddle ? "Paddle" : "Keyer");
+    snprintf(rows[3], 28, "Paddle    %s", swapped ? "Swapped" : "Normal");
+    snprintf(rows[4], 28, "Sidetone  %s", tone ? "On" : "Off");
+    for (int i = 0; i < 5; i++) {
+      int y = 26 + i * 22;
+      if (i == sel) {
+        _gfx->fillRect(0, y - 2, 320, 20, RGB565_DARKGREEN);
+        _gfx->setTextColor(RGB565_YELLOW);
+      } else {
+        _gfx->setTextColor(RGB565_WHITE);
+      }
+      _gfx->setCursor(8, y);
+      _gfx->print(rows[i]);
+    }
+    _gfx->setTextColor(RGB565_DARKGREY);
+    _gfx->setTextSize(1);
+    _gfx->setCursor(8, 140);
+    _gfx->print("dit: next   dah/BOOT: change   hold BOOT: save+exit");
+  }
+
 private:
   static const int COLS = 26; // 320 / 12px per size-2 char
   static const int ROWS = 6;

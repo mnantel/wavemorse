@@ -5,9 +5,9 @@
 // Phone:  plugs into iPhone 15 via a USB-C (male) to USB-A (female) adapter;
 //         enumerates as a USB MIDI device that Morse-It can use directly.
 //
-// BOOT button: short press        = cycle WPM
-//              hold ~1s           = toggle MIDI mode (PADDLE / KEYER)
-//              hold ~3s           = toggle iambic mode A/B
+// BOOT button opens the settings menu (speed, iambic A/B, MIDI mode,
+// paddle swap, sidetone). In the menu: dit = next item, dah or BOOT tap =
+// change value, BOOT held ~1s = save and exit.
 //
 // MIDI modes:
 //   PADDLE (default) - raw paddle contacts are sent as two MIDI notes;
@@ -41,7 +41,12 @@ struct Settings {
   uint8_t wpmIndex = 2; // 20 wpm
   bool iambicB = DEFAULT_IAMBIC_B;
   bool midiPaddle = DEFAULT_MIDI_PADDLE;
+  bool swap = DEFAULT_SWAP;
+  bool tone = DEFAULT_TONE;
 } settings;
+
+bool menuOpen = false;
+uint8_t menuSel = 0;
 
 volatile bool usbMounted = false;
 bool lastDitSent = false, lastDahSent = false;
@@ -57,27 +62,36 @@ struct StraightKey {
   bool down = false;
   uint32_t t = 0, downAt = 0;
 };
-StraightKey skJack, skPaddle;
+StraightKey skPaddle;
 
 uint8_t currentWpm() { return WPM_STEPS[settings.wpmIndex]; }
 
 // --- callbacks -------------------------------------------------------------
 
+void toneOn() {
+#if PIN_SIDETONE
+  if (settings.tone)
+    ledcWriteTone(PIN_SIDETONE, SIDETONE_HZ);
+#endif
+}
+
+void toneOff() {
+#if PIN_SIDETONE
+  ledcWriteTone(PIN_SIDETONE, 0);
+#endif
+}
+
 void handleKeyDown(char element) {
   decoder.onElement(element, millis());
   rgbLedWrite(PIN_RGB_LED, 64, 0, 0);
-#if PIN_SIDETONE
-  ledcWriteTone(PIN_SIDETONE, SIDETONE_HZ);
-#endif
+  toneOn();
   if (!settings.midiPaddle)
     midi.noteOn(NOTE_KEY, 127);
 }
 
 void handleKeyUp() {
   idleLed();
-#if PIN_SIDETONE
-  ledcWriteTone(PIN_SIDETONE, 0);
-#endif
+  toneOff();
   if (!settings.midiPaddle)
     midi.noteOff(NOTE_KEY, 0);
 }
@@ -99,6 +113,10 @@ void idleLed() {
 // --- settings --------------------------------------------------------------
 
 void applySettings() {
+  if (settings.swap)
+    keyer.begin(PIN_DAH, PIN_DIT, PADDLE_DEBOUNCE_MS);
+  else
+    keyer.begin(PIN_DIT, PIN_DAH, PADDLE_DEBOUNCE_MS);
   keyer.setWpm(currentWpm());
   keyer.setIambicB(settings.iambicB);
   decoder.setWpm(currentWpm());
@@ -118,15 +136,11 @@ void pollStraightKey(StraightKey &sk, bool raw, uint32_t now) {
     sk.downAt = now;
     midi.noteOn(NOTE_KEY, 127);
     rgbLedWrite(PIN_RGB_LED, 64, 0, 0);
-#if PIN_SIDETONE
-    ledcWriteTone(PIN_SIDETONE, SIDETONE_HZ);
-#endif
+    toneOn();
   } else {
     midi.noteOff(NOTE_KEY, 0);
     idleLed();
-#if PIN_SIDETONE
-    ledcWriteTone(PIN_SIDETONE, 0);
-#endif
+    toneOff();
     uint32_t dur = now - sk.downAt;
     decoder.onElement(dur < 2u * (1200u / currentWpm()) ? '.' : '-', now);
   }
@@ -136,6 +150,8 @@ void saveSettings() {
   prefs.putUChar("wpmIdx", settings.wpmIndex);
   prefs.putBool("iambicB", settings.iambicB);
   prefs.putBool("midiPdl", settings.midiPaddle);
+  prefs.putBool("swap", settings.swap);
+  prefs.putBool("tone", settings.tone);
 }
 
 void loadSettings() {
@@ -144,9 +160,61 @@ void loadSettings() {
     settings.wpmIndex = 2;
   settings.iambicB = prefs.getBool("iambicB", settings.iambicB);
   settings.midiPaddle = prefs.getBool("midiPdl", settings.midiPaddle);
+  settings.swap = prefs.getBool("swap", settings.swap);
+  settings.tone = prefs.getBool("tone", settings.tone);
 }
 
-// --- button ----------------------------------------------------------------
+// --- settings menu -----------------------------------------------------------
+// BOOT opens the menu. Inside: dit paddle = next item, dah paddle or a BOOT
+// tap = change value, BOOT held ~1s = save and exit. (Works with a straight
+// key too: dit navigates, BOOT changes.)
+
+void menuRender() {
+  display.menu(menuSel, currentWpm(), settings.iambicB, settings.midiPaddle,
+               settings.swap, settings.tone);
+}
+
+void menuChange() {
+  switch (menuSel) {
+  case 0: settings.wpmIndex = (settings.wpmIndex + 1) % sizeof(WPM_STEPS); break;
+  case 1: settings.iambicB = !settings.iambicB; break;
+  case 2: settings.midiPaddle = !settings.midiPaddle; break;
+  case 3: settings.swap = !settings.swap; break;
+  case 4: settings.tone = !settings.tone; break;
+  }
+  menuRender();
+}
+
+void menuEnter() {
+  // silence anything in flight before taking over the paddles
+  if (lastDitSent) { midi.noteOff(NOTE_DIT, 0); lastDitSent = false; }
+  if (lastDahSent) { midi.noteOff(NOTE_DAH, 0); lastDahSent = false; }
+  midi.noteOff(NOTE_KEY, 0);
+  toneOff();
+  idleLed();
+  menuOpen = true;
+  menuSel = 0;
+  menuRender();
+}
+
+void menuExit() {
+  menuOpen = false;
+  saveSettings();
+  applySettings();
+  display.pattern(decoder.pattern());
+  display.refreshText();
+}
+
+// simple debounced falling-edge detector for menu navigation
+bool fellLow(uint8_t pin, bool &state, uint32_t &t, uint32_t now) {
+  bool raw = digitalRead(pin) == LOW;
+  if (raw != state && now - t >= PADDLE_DEBOUNCE_MS * 4) {
+    state = raw;
+    t = now;
+    return raw;
+  }
+  return false;
+}
 
 void pollButton(uint32_t now) {
   static bool down = false;
@@ -159,17 +227,14 @@ void pollButton(uint32_t now) {
   } else if (!pressed && down) {
     down = false;
     uint32_t held = now - tDown;
-    if (held >= 3000) {
-      settings.iambicB = !settings.iambicB;
-    } else if (held >= 800) {
-      settings.midiPaddle = !settings.midiPaddle;
-    } else if (held >= 30) {
-      settings.wpmIndex = (settings.wpmIndex + 1) % sizeof(WPM_STEPS);
-    } else {
-      return;
-    }
-    applySettings();
-    saveSettings();
+    if (held < 30)
+      return; // bounce
+    if (!menuOpen)
+      menuEnter();
+    else if (held >= 800)
+      menuExit();
+    else
+      menuChange();
   }
 }
 
@@ -181,7 +246,6 @@ void setup() {
   loadSettings();
 
   pinMode(PIN_BOOT_BTN, INPUT_PULLUP);
-  pinMode(PIN_SKEY, INPUT_PULLUP);
 #if PIN_SIDETONE
   ledcAttach(PIN_SIDETONE, SIDETONE_HZ, 10);
   ledcWriteTone(PIN_SIDETONE, 0);
@@ -190,11 +254,7 @@ void setup() {
   gfxOk = display.begin();
   Serial.printf("MorseKey boot, gfx=%d\n", gfxOk);
 
-#if PADDLE_SWAP
-  keyer.begin(PIN_DAH, PIN_DIT, PADDLE_DEBOUNCE_MS);
-#else
-  keyer.begin(PIN_DIT, PIN_DAH, PADDLE_DEBOUNCE_MS);
-#endif
+  // pins are assigned in applySettings() (paddle swap is a runtime setting)
   keyer.onKeyDown = handleKeyDown;
   keyer.onKeyUp = handleKeyUp;
   decoder.onChar = handleChar;
@@ -216,8 +276,22 @@ void setup() {
 void loop() {
   uint32_t now = millis();
 
+  // Settings menu takes over the paddles for navigation.
+  if (menuOpen) {
+    pollButton(now);
+    static bool navDit = false, navDah = false;
+    static uint32_t tDit = 0, tDah = 0;
+    if (fellLow(settings.swap ? PIN_DAH : PIN_DIT, navDit, tDit, now)) {
+      menuSel = (menuSel + 1) % 5;
+      menuRender();
+    }
+    if (fellLow(settings.swap ? PIN_DIT : PIN_DAH, navDah, tDah, now))
+      menuChange();
+    return;
+  }
+
   // Detect a mono plug in the paddle jack: ring (physical DAH pin, ignoring
-  // PADDLE_SWAP) grounded for 8s straight - far longer than any run of
+  // paddle swap) grounded for 8s straight - far longer than any run of
   // dahs - or already grounded at power-up (checked in setup).
   bool ringGrounded = digitalRead(PIN_DAH) == LOW;
   if (!straightJack) {
@@ -255,11 +329,7 @@ void loop() {
     keyer.poll(now);
   }
 
-  // Dedicated straight-key input (shield KEY jack / header GPIO4)
-  pollStraightKey(skJack, digitalRead(PIN_SKEY) == LOW, now);
-
-  decoder.poll(now, (!straightJack && keyer.keyed()) || skJack.down ||
-                        skPaddle.down);
+  decoder.poll(now, (!straightJack && keyer.keyed()) || skPaddle.down);
   pollButton(now);
 
   // Paddle passthrough: mirror debounced contacts as MIDI note on/off so

@@ -35,8 +35,8 @@ The paddle connects to the board's edge header. With a 3.5mm TRS jack
 
 All three are on the edge header (follow the silkscreen labels GND, 2, 3).
 The inputs use internal pull-ups; the paddle just shorts them to ground — no
-resistors needed. If dit/dah feel reversed, set `PADDLE_SWAP` to `1` in
-`morsekey/config.h` (or swap the wires). Free header GPIOs on this board are
+resistors needed. If dit/dah feel reversed, flip "Paddle: Swapped" in the
+settings menu (or swap the wires). Free header GPIOs on this board are
 2–11; avoid 1 (battery ADC) and 12/13 (IMU interrupts).
 
 ## Connecting to the iPhone
@@ -66,13 +66,18 @@ speed is controlled on the board.
 
 ## Controls
 
-| Action                    | Effect                                  |
-|---------------------------|-----------------------------------------|
-| BOOT short press          | Cycle speed: 15/18/20/22/25/28/30 WPM   |
-| BOOT hold ~1 s            | Toggle MIDI mode: PADDLE / KEYER        |
-| BOOT hold ~3 s            | Toggle iambic mode A / B                |
+Press **BOOT** to open the on-screen settings menu, then navigate with the
+paddle:
 
-Settings persist across power cycles. The screen shows a status bar (WPM,
+| Input in menu     | Effect                                   |
+|-------------------|------------------------------------------|
+| Dit paddle        | Next item                                |
+| Dah paddle / BOOT tap | Change the selected value            |
+| BOOT held ~1 s    | Save and exit                            |
+
+Settings: speed (15–30 WPM), iambic A/B, MIDI mode (Paddle/Keyer), paddle
+swap, sidetone on/off. All persist across power cycles. With a straight
+key plugged in, navigate with the key and change values with BOOT taps. The screen shows a status bar (WPM,
 iambic mode, MIDI mode, USB state), the in-progress dit/dah pattern in
 yellow, and the decoded text in green. The RGB LED is red while keying, dim
 cyan at idle in PADDLE mode, dim green in KEYER mode. Unrecognized patterns
@@ -114,8 +119,7 @@ header pin (off by default — Morse-It provides sidetone on the phone).
 1:1 placement PDF) with the same footprint as the board: one 3.5mm jack
 that takes either a paddle (TRS) or a straight key (TS mono — auto-detected,
 status bar shows `SKEY`), plus an optional piezo sidetone on GPIO5. See
-`shield/README.md` for ordering and assembly. GPIO4 is also read as a
-dedicated straight-key input for off-board wiring.
+`shield/README.md` for ordering and assembly.
 
 ## Possible extensions
 

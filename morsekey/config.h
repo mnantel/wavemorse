@@ -11,14 +11,8 @@
 #define PIN_DIT 2
 #define PIN_DAH 3
 
-// Straight key input (the shield's KEY jack tip). Active LOW, pull-up.
-#define PIN_SKEY 4
-
-// Set to 1 if your paddle feels backwards (left/right swapped).
-#define PADDLE_SWAP 0
-
-// Piezo sidetone (0 = disabled). The MorseKey shield has a piezo footprint
-// wired to GPIO5; harmless if unpopulated.
+// Piezo sidetone pin. The MorseKey shield has a piezo footprint wired to
+// GPIO5; harmless if unpopulated. Enable/disable at runtime in the menu.
 #define PIN_SIDETONE 5
 #define SIDETONE_HZ 600
 
@@ -39,10 +33,12 @@
 #define NOTE_DAH 61 // paddle mode: dah contact
 #define NOTE_KEY 62 // keyer mode: locally keyed output (straight key)
 
-// Defaults (changeable at runtime with the BOOT button, saved to flash).
+// Defaults (changeable at runtime in the settings menu, saved to flash).
 #define DEFAULT_WPM 20
-#define DEFAULT_IAMBIC_B true   // false = mode A
+#define DEFAULT_IAMBIC_B true    // false = mode A
 #define DEFAULT_MIDI_PADDLE true // true = send raw paddle, false = send keyed output
+#define DEFAULT_SWAP false       // swap dit/dah paddles
+#define DEFAULT_TONE true        // piezo sidetone
 
 // Debounce time for paddle contacts, in ms.
 #define PADDLE_DEBOUNCE_MS 5

@@ -40,9 +40,6 @@ while it's still free.
 | PIEZO | GPIO5 | piezo + |
 | GND | both G pins | jack sleeve, piezo −, ground pour |
 
-GPIO4 (SKEY) stays free on the header for a dedicated straight-key input if
-you ever want a second jack off-board.
-
 **Paddle vs straight key:** a TRS (stereo) plug = paddle on tip/ring. A TS
 (mono) straight-key plug grounds the ring permanently; the firmware detects
 this (at power-up, or after 8 s of continuous "dah") and turns the tip into
