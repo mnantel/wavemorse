@@ -220,20 +220,24 @@ bool fellLow(uint8_t pin, bool &state, uint32_t &t, uint32_t now) {
 void pollButton(uint32_t now) {
   static bool down = false;
   static uint32_t tDown = 0;
+  static bool consumed = false; // hold action already fired for this press
 
   bool pressed = digitalRead(PIN_BOOT_BTN) == LOW;
   if (pressed && !down) {
     down = true;
     tDown = now;
+    consumed = false;
+  } else if (pressed && menuOpen && !consumed && now - tDown >= 800) {
+    // save+exit fires as soon as the hold threshold is reached - no need
+    // to wait for the release
+    consumed = true;
+    menuExit();
   } else if (!pressed && down) {
     down = false;
-    uint32_t held = now - tDown;
-    if (held < 30)
-      return; // bounce
+    if (consumed || now - tDown < 30)
+      return;
     if (!menuOpen)
       menuEnter();
-    else if (held >= 800)
-      menuExit();
     else
       menuChange();
   }
