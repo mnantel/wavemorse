@@ -227,11 +227,18 @@ void pollButton(uint32_t now) {
     down = true;
     tDown = now;
     consumed = false;
-  } else if (pressed && menuOpen && !consumed && now - tDown >= 800) {
-    // save+exit fires as soon as the hold threshold is reached - no need
-    // to wait for the release
+  } else if (pressed && !consumed && now - tDown >= 800) {
+    // hold actions fire as soon as the threshold is reached - no need to
+    // wait for the release
     consumed = true;
-    menuExit();
+    if (menuOpen) {
+      menuExit();
+    } else {
+      // quick access: toggle iambic A/B without entering the menu
+      settings.iambicB = !settings.iambicB;
+      saveSettings();
+      applySettings();
+    }
   } else if (!pressed && down) {
     down = false;
     if (consumed || now - tDown < 30)

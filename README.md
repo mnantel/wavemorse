@@ -52,7 +52,8 @@ Two ways to use it — pick one in the settings menu ("MIDI" item):
 **PADDLE mode (default, recommended).** The board sends the raw paddle
 contacts as two MIDI notes (dit = note 60, dah = note 61) and Morse-It runs
 its own iambic keyer, sidetone and speed:
-1. In Morse-It, set the key type to **Iambic Paddle (B)**.
+1. In Morse-It, set the key type to **Iambic Paddle**, matching the A/B
+   mode shown on the board (default: A).
 2. In the settings, under the hardware/MIDI interface section, select the
    **MorseKey** MIDI device and assign the two notes to the dit and dah
    areas (use the app's "learn" function: tap the field, press a paddle).
@@ -66,8 +67,9 @@ speed is controlled on the board.
 
 ## Controls
 
-Press **BOOT** to open the on-screen settings menu, then navigate with the
-paddle:
+**BOOT quick press** opens the on-screen settings menu; **BOOT held ~1 s**
+(outside the menu) toggles iambic A/B directly — the status bar reflects it
+immediately. In the menu, navigate with the paddle:
 
 | Input in menu     | Effect                                   |
 |-------------------|------------------------------------------|

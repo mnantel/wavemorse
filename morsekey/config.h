@@ -39,7 +39,7 @@
 
 // Defaults (changeable at runtime in the settings menu, saved to flash).
 #define DEFAULT_WPM 20
-#define DEFAULT_IAMBIC_B true    // false = mode A
+#define DEFAULT_IAMBIC_B false   // false = mode A
 #define DEFAULT_MIDI_PADDLE true // true = send raw paddle, false = send keyed output
 #define DEFAULT_SWAP false       // swap dit/dah paddles
 #define DEFAULT_TONE true        // piezo sidetone
