@@ -28,10 +28,14 @@
 #define PIN_BOOT_BTN 0
 #define PIN_RGB_LED 38
 
-// MIDI notes sent to Morse-It (assign them in the app with "learn").
-#define NOTE_DIT 60 // paddle mode: dit contact
-#define NOTE_DAH 61 // paddle mode: dah contact
-#define NOTE_KEY 62 // keyer mode: locally keyed output (straight key)
+// MIDI notes sent to Morse-It. These match Morse-It's documented adapter
+// defaults (https://pacolabs.com/iOS/MorseIt/MIDI/): dit = 18, dah = 38,
+// straight key = 18, channel 0 - so the app needs little or no note
+// assignment. Reassignable in the app if you change them here.
+#define MIDI_CH 0
+#define NOTE_DIT 18 // paddle mode: dit contact
+#define NOTE_DAH 38 // paddle mode: dah contact
+#define NOTE_KEY 18 // keyer mode / straight key: locally keyed output
 
 // Defaults (changeable at runtime in the settings menu, saved to flash).
 #define DEFAULT_WPM 20

@@ -86,14 +86,14 @@ void handleKeyDown(char element) {
   rgbLedWrite(PIN_RGB_LED, 64, 0, 0);
   toneOn();
   if (!settings.midiPaddle)
-    midi.noteOn(NOTE_KEY, 127);
+    midi.noteOn(NOTE_KEY, 127, MIDI_CH);
 }
 
 void handleKeyUp() {
   idleLed();
   toneOff();
   if (!settings.midiPaddle)
-    midi.noteOff(NOTE_KEY, 0);
+    midi.noteOff(NOTE_KEY, 0, MIDI_CH);
 }
 
 void handleChar(char c) {
@@ -134,11 +134,11 @@ void pollStraightKey(StraightKey &sk, bool raw, uint32_t now) {
   sk.t = now;
   if (sk.down) {
     sk.downAt = now;
-    midi.noteOn(NOTE_KEY, 127);
+    midi.noteOn(NOTE_KEY, 127, MIDI_CH);
     rgbLedWrite(PIN_RGB_LED, 64, 0, 0);
     toneOn();
   } else {
-    midi.noteOff(NOTE_KEY, 0);
+    midi.noteOff(NOTE_KEY, 0, MIDI_CH);
     idleLed();
     toneOff();
     uint32_t dur = now - sk.downAt;
@@ -187,9 +187,9 @@ void menuChange() {
 
 void menuEnter() {
   // silence anything in flight before taking over the paddles
-  if (lastDitSent) { midi.noteOff(NOTE_DIT, 0); lastDitSent = false; }
-  if (lastDahSent) { midi.noteOff(NOTE_DAH, 0); lastDahSent = false; }
-  midi.noteOff(NOTE_KEY, 0);
+  if (lastDitSent) { midi.noteOff(NOTE_DIT, 0, MIDI_CH); lastDitSent = false; }
+  if (lastDahSent) { midi.noteOff(NOTE_DAH, 0, MIDI_CH); lastDahSent = false; }
+  midi.noteOff(NOTE_KEY, 0, MIDI_CH);
   toneOff();
   idleLed();
   menuOpen = true;
@@ -305,8 +305,8 @@ void loop() {
         ringSince = now ? now : 1;
       else if (now - ringSince > 8000) {
         straightJack = true;
-        if (lastDitSent) { midi.noteOff(NOTE_DIT, 0); lastDitSent = false; }
-        if (lastDahSent) { midi.noteOff(NOTE_DAH, 0); lastDahSent = false; }
+        if (lastDitSent) { midi.noteOff(NOTE_DIT, 0, MIDI_CH); lastDitSent = false; }
+        if (lastDahSent) { midi.noteOff(NOTE_DAH, 0, MIDI_CH); lastDahSent = false; }
         applySettings();
       }
     } else {
@@ -343,11 +343,11 @@ void loop() {
     bool dit = keyer.ditPressed();
     bool dah = keyer.dahPressed();
     if (dit != lastDitSent) {
-      dit ? midi.noteOn(NOTE_DIT, 127) : midi.noteOff(NOTE_DIT, 0);
+      dit ? midi.noteOn(NOTE_DIT, 127) : midi.noteOff(NOTE_DIT, 0, MIDI_CH);
       lastDitSent = dit;
     }
     if (dah != lastDahSent) {
-      dah ? midi.noteOn(NOTE_DAH, 127) : midi.noteOff(NOTE_DAH, 0);
+      dah ? midi.noteOn(NOTE_DAH, 127) : midi.noteOff(NOTE_DAH, 0, MIDI_CH);
       lastDahSent = dah;
     }
   }
