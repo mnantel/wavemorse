@@ -47,7 +47,7 @@ named **MorseKey**.
 
 ## Morse-It setup
 
-Two ways to use it — pick one with a ~1s hold of the BOOT button:
+Two ways to use it — pick one in the settings menu ("MIDI" item):
 
 **PADDLE mode (default, recommended).** The board sends the raw paddle
 contacts as two MIDI notes (dit = note 60, dah = note 61) and Morse-It runs
@@ -77,7 +77,9 @@ paddle:
 
 Settings: speed (10–30 WPM), iambic A/B, MIDI mode (Paddle/Keyer), paddle
 swap, sidetone on/off. All persist across power cycles. With a straight
-key plugged in, navigate with the key and change values with BOOT taps. The screen shows a status bar (WPM,
+key plugged in, navigate with the key and change values with BOOT taps.
+
+The screen shows a status bar (WPM,
 iambic mode, MIDI mode, USB state), the in-progress dit/dah pattern in
 yellow, and the decoded text in green. The RGB LED is red while keying, dim
 cyan at idle in PADDLE mode, dim green in KEYER mode. Unrecognized patterns
@@ -109,9 +111,9 @@ flash), force the bootloader: hold **BOOT**, tap **RESET**, release BOOT.
 
 ## Configuration
 
-Compile-time options in `morsekey/config.h`: paddle pins and swap, MIDI note
-numbers, default WPM/modes, and an optional piezo sidetone output on a spare
-header pin (off by default — Morse-It provides sidetone on the phone).
+Runtime settings live in the on-screen menu. Compile-time options in
+`morsekey/config.h`: paddle/piezo pins, MIDI note numbers, sidetone pitch,
+and defaults.
 
 ## Shield PCB
 
@@ -124,5 +126,7 @@ status bar shows `SKEY`), plus an optional piezo sidetone on GPIO5. See
 ## Possible extensions
 
 - **BLE MIDI**: the ESP32-S3 has Bluetooth; Morse-It also accepts BLE MIDI,
-  which would make the key wireless (battery would need to be added).
-- A settings menu on the LCD using the paddle for navigation.
+  which would make the key wireless (the board has a LiPo charger and BAT
+  connector).
+- **IMU gestures**: the onboard QMI8658 accelerometer could open the menu
+  on a double-tap.
