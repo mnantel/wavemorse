@@ -28,35 +28,53 @@ public:
 
   void status(uint8_t wpm, bool iambicB, bool midiPaddle, bool usb,
               bool straightKey = false) {
-    _gfx->fillRect(0, 0, 320, 20, RGB565_DARKCYAN);
-    _gfx->setTextColor(RGB565_WHITE);
-    _gfx->setTextSize(2);
-    _gfx->setCursor(4, 3);
     char buf[32];
     snprintf(buf, sizeof(buf), "%2dwpm %c %s %s", wpm, iambicB ? 'B' : 'A',
              straightKey ? "SKEY" : (midiPaddle ? "PADDLE" : "KEYER"),
              usb ? "USB" : "---");
+    if (strcmp(buf, _lastStatus) == 0)
+      return; // avoid pointless repaints (and flicker) when nothing changed
+    strncpy(_lastStatus, buf, sizeof(_lastStatus));
+    _gfx->fillRect(0, 0, 320, 20, RGB565_DARKCYAN);
+    _gfx->setTextColor(RGB565_WHITE);
+    _gfx->setTextSize(2);
+    _gfx->setCursor(4, 3);
     _gfx->print(buf);
   }
 
+  // In-progress dit/dah pattern. Drawn incrementally: appending one symbol
+  // paints just that symbol; only a reset/shrink wipes the strip.
   void pattern(const char *pat) {
-    _gfx->fillRect(0, 24, 320, 34, RGB565_BLACK);
+    size_t nl = strlen(pat), ol = strlen(_lastPat);
     _gfx->setTextColor(RGB565_YELLOW);
     _gfx->setTextSize(4);
-    _gfx->setCursor(4, 26);
-    _gfx->print(pat);
+    if (nl == ol + 1 && strncmp(pat, _lastPat, ol) == 0) {
+      _gfx->setCursor(4 + ol * 24, 26);
+      _gfx->write(pat[nl - 1]);
+    } else {
+      _gfx->fillRect(0, 24, 320, 34, RGB565_BLACK);
+      _gfx->setCursor(4, 26);
+      _gfx->print(pat);
+    }
+    strncpy(_lastPat, pat, sizeof(_lastPat) - 1);
   }
 
+  // Decoded text. New characters are painted in place; the area is only
+  // fully redrawn when the buffer scrolls.
   void append(char c) {
     size_t n = strlen(_text);
     if (n >= sizeof(_text) - 1) {
       // drop the oldest line worth of text
       memmove(_text, _text + COLS, n - COLS + 1);
       n -= COLS;
+      _text[n] = c;
+      _text[n + 1] = 0;
+      render();
+    } else {
+      _text[n] = c;
+      _text[n + 1] = 0;
+      drawTextChar(n);
     }
-    _text[n] = c;
-    _text[n + 1] = 0;
-    render();
   }
 
   void clearText() {
@@ -66,7 +84,11 @@ public:
 
   void refreshText() { render(); }
 
-  void clearScreen() { _gfx->fillScreen(RGB565_BLACK); }
+  void clearScreen() {
+    _gfx->fillScreen(RGB565_BLACK);
+    _lastStatus[0] = 0; // screen is blank: invalidate incremental caches
+    _lastPat[0] = 0;
+  }
 
   // Full-screen settings menu. sel highlights one of the 5 rows.
   void menu(uint8_t sel, uint8_t wpm, bool iambicB, bool midiPaddle,
@@ -101,27 +123,28 @@ public:
   }
 
 private:
-  static const int COLS = 26; // 320 / 12px per size-2 char
-  static const int ROWS = 6;
-  static const int TEXT_Y = 64;
+  static const int COLS = 17;   // 320 / 18px per size-3 char
+  static const int ROWS = 4;
+  static const int TEXT_Y = 62;
+  static const int LINE_H = 27; // 24px glyph + 3 leading
+  static const int CHAR_W = 18;
+
+  void drawTextChar(size_t i) {
+    _gfx->setTextColor(RGB565_WHITE);
+    _gfx->setTextSize(3);
+    _gfx->setCursor(2 + (i % COLS) * CHAR_W, TEXT_Y + 2 + (i / COLS) * LINE_H);
+    _gfx->write(_text[i]);
+  }
 
   void render() {
     _gfx->fillRect(0, TEXT_Y, 320, 172 - TEXT_Y, RGB565_BLACK);
-    _gfx->setTextColor(RGB565_GREEN);
-    _gfx->setTextSize(2);
-    size_t len = strlen(_text);
-    size_t lines = (len + COLS - 1) / COLS;
-    size_t firstLine = lines > ROWS ? lines - ROWS : 0;
-    int y = TEXT_Y + 2;
-    for (size_t l = firstLine; l < lines; l++) {
-      _gfx->setCursor(2, y);
-      for (size_t i = l * COLS; i < min(len, (l + 1) * COLS); i++)
-        _gfx->write(_text[i]);
-      y += 18;
-    }
+    for (size_t i = 0; i < strlen(_text); i++)
+      drawTextChar(i);
   }
 
   Arduino_DataBus *_bus = nullptr;
   Arduino_GFX *_gfx = nullptr;
   char _text[COLS * ROWS + 1] = {0};
+  char _lastPat[12] = {0};
+  char _lastStatus[32] = {0};
 };
