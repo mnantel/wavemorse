@@ -27,10 +27,14 @@ public:
   bool keyed() const { return _state == SENDING; }
 
   void poll(uint32_t now) {
+    bool wasDit = _dit, wasDah = _dah;
     debounce(now);
+    bool ditEdge = _dit && !wasDit;
+    bool dahEdge = _dah && !wasDah;
 
     switch (_state) {
     case IDLE:
+      _ditQ = _dahQ = false;
       if (_dit)
         startElement('.', now);
       else if (_dah)
@@ -38,7 +42,7 @@ public:
       break;
 
     case SENDING:
-      latchMemories();
+      latchMemories(ditEdge, dahEdge);
       if (now - _tStart >= (_element == '.' ? _ditMs : 3 * _ditMs)) {
         if (onKeyUp)
           onKeyUp();
@@ -48,7 +52,7 @@ public:
       break;
 
     case GAP:
-      latchMemories();
+      latchMemories(ditEdge, dahEdge);
       if (now - _tStart >= _ditMs) {
         char next = decideNext();
         if (next)
@@ -76,15 +80,21 @@ private:
   }
 
   // While sending (and during the gap in mode B), a tap on the opposite
-  // paddle is remembered. Mode A forgets queued elements once both paddles
-  // are released.
-  void latchMemories() {
+  // paddle is remembered. Mode A forgets those once both paddles are
+  // released. Independently, a NEW press of the same paddle as the element
+  // in flight queues exactly one repeat ("dot/dash memory") so quick
+  // individual taps aren't swallowed by the element clock.
+  void latchMemories(bool ditEdge, bool dahEdge) {
     if (_modeB || _state == SENDING) {
       if (_dit && _element == '-')
         _ditMem = true;
       if (_dah && _element == '.')
         _dahMem = true;
     }
+    if (ditEdge && _element == '.')
+      _ditQ = true;
+    if (dahEdge && _element == '-')
+      _dahQ = true;
     if (!_modeB && !_dit && !_dah)
       _ditMem = _dahMem = false;
   }
@@ -93,13 +103,17 @@ private:
     if (_element == '.') {
       if (_dahMem || _dah)
         return '-';
-      if (_dit)
+      if (_dit || _ditQ) {
+        _ditQ = false;
         return '.';
+      }
     } else {
       if (_ditMem || _dit)
         return '.';
-      if (_dah)
+      if (_dah || _dahQ) {
+        _dahQ = false;
         return '-';
+      }
     }
     return 0;
   }
@@ -127,5 +141,6 @@ private:
   uint32_t _tStart = 0;
   bool _dit = false, _dah = false;
   bool _ditMem = false, _dahMem = false;
+  bool _ditQ = false, _dahQ = false; // same-paddle tap queue
   uint32_t _tDit = 0, _tDah = 0;
 };
