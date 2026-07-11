@@ -75,7 +75,7 @@ paddle:
 | Dah paddle / BOOT tap | Change the selected value            |
 | BOOT held ~1 s    | Save and exit                            |
 
-Settings: speed (15–30 WPM), iambic A/B, MIDI mode (Paddle/Keyer), paddle
+Settings: speed (10–30 WPM), iambic A/B, MIDI mode (Paddle/Keyer), paddle
 swap, sidetone on/off. All persist across power cycles. With a straight
 key plugged in, navigate with the key and change values with BOOT taps. The screen shows a status bar (WPM,
 iambic mode, MIDI mode, USB state), the in-progress dit/dah pattern in

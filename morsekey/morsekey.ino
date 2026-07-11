@@ -29,7 +29,7 @@
 #include "display.h"
 #include "keyer.h"
 
-static const uint8_t WPM_STEPS[] = {15, 18, 20, 22, 25, 28, 30};
+static const uint8_t WPM_STEPS[] = {10, 12, 15, 18, 20, 22, 25, 28, 30};
 
 USBMIDI midi;
 Keyer keyer;
@@ -38,7 +38,7 @@ Display display;
 Preferences prefs;
 
 struct Settings {
-  uint8_t wpmIndex = 2; // 20 wpm
+  uint8_t wpmIndex = 4; // 20 wpm
   bool iambicB = DEFAULT_IAMBIC_B;
   bool midiPaddle = DEFAULT_MIDI_PADDLE;
   bool swap = DEFAULT_SWAP;
