@@ -54,9 +54,13 @@ HEADER_NETS = {"2": "DIT", "3": "DAH", "4": "SKEY", "5": "PIEZO", "G": "GND"}
 JACK_FACE_X = SHIELD_LEN            # jack body front face at the right edge
 JACK_CY = SHIELD_W / 2              # 10.16, centered between the rows
 
-# The buzzer footprint anchors at pad 1; pads at +0 and +7.6, body center
-# at +3.8. Anchor at 13.2 puts the body at x 10.4..23.6, clear of the jack.
-PIEZO_X, PIEZO_Y = 13.2, SHIELD_W / 2
+# Piezo: TDK PS1240 footprint (5.0 mm pin pitch, 1.0 mm drills) - matches
+# the in-stock Same Sky CPT-1207-5LTH-T / CPT-1206-3TH-T and TDK PS1240
+# (every available 12 mm TH piezo uses 5.0 mm pitch; none use 7.6).
+# Anchor is pad 1; pads at +0 and +5, body center at +2.5 (courtyard
+# r=6.35). Anchor 14.5 -> body center x=17, courtyard 10.65..23.35, clear
+# of the jack courtyard (~23.9) and the socket courtyards.
+PIEZO_X, PIEZO_Y = 14.5, SHIELD_W / 2
 
 TRACK_W = 0.35
 
@@ -201,7 +205,7 @@ pad_named(j_paddle, "R").SetNet(net("DAH"))
 silk_text("PADDLE / KEY", 29.5, JACK_CY, 1.1, 0, pcbnew.B_SilkS)
 
 # --- piezo ---------------------------------------------------------------------
-piezo = load_fp("Buzzer_Beeper", "Buzzer_12x9.5RM7.6")
+piezo = load_fp("Buzzer_Beeper", "Buzzer_TDK_PS1240P02BT_D12.2mm_H6.5mm")
 place(piezo, "BZ1", PIEZO_X, PIEZO_Y, 0)
 pad_named(piezo, 1).SetNet(net("PIEZO"))
 pad_named(piezo, 2).SetNet(net("GND"))

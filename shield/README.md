@@ -23,13 +23,18 @@ while it's still free.
 
 ## Bill of materials
 
-| Qty | Part | Note |
-|-----|------|------|
-| 2 | 1×9 female header socket, 2.54 mm | standard 8.5 mm height |
-| 2 | 1×9 male pin header, 2.54 mm | solder to the ESP32 board, pins down |
-| 1 | CUI SJ1-3523N 3.5 mm TRS jack | through-hole; DigiKey CP1-3523N-ND |
-| 1 | 12 mm piezo buzzer, 7.6 mm pin spacing (e.g. TDK PS1240) | optional — sidetone |
-| 2 | M2 screw + standoff | optional — case mounting, USB end corners |
+| Qty | Part | DigiKey P/N | Note |
+|-----|------|-------------|------|
+| 1 | Same Sky SJ1-3523N 3.5 mm TRS jack | **CP1-3523N-ND** | through-hole, right angle |
+| 1 | Same Sky CPT-1207-5LTH-T piezo transducer | **2223-CPT-1207-5LTH-T-ND** | optional — sidetone; ø12.5 mm, 5.0 mm pin pitch, 85 dB |
+| 2 | 1×9 female header socket, 2.54 mm | e.g. **S7007-ND** (Sullins PPTC091LFBN-RC) | standard 8.5 mm height |
+| 2 | 1×9 male pin header, 2.54 mm | e.g. **S1012EC-09-ND** (breakaway) | solder to the ESP32 board, pins down |
+| 2 | M2 screw + standoff | — | optional — case mounting, USB end corners |
+
+Piezo alternates (same 5.0 mm-pitch footprint): TDK **PS1240P02BT**
+(DigiKey 445-2525-1-ND, often backordered) or Same Sky **CPT-1206-3TH-T**
+(2223-CPT-1206-3TH-T-ND). Any ~12 mm two-pin piezo *transducer*
+(externally driven — not an "indicator") with 5.0 mm pin spacing fits.
 
 ## Connections (all done by the PCB)
 
