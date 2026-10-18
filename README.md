@@ -22,6 +22,46 @@ away — with live decode on the built-in LCD.
 Plugged into an iPhone 15, the phone powers the board and Morse-It sees it as
 a MIDI input device — the same mechanism the N6ARA TinyMIDI uses.
 
+## Parts list
+
+Everything needed for a complete key. The shield parts are all
+through-hole — no surface-mount soldering.
+
+**Core**
+
+| Qty | Part | Where | Note |
+|-----|------|-------|------|
+| 1 | Waveshare **ESP32-S3-LCD-1.47B** (USB-C variant) | Waveshare store, Amazon | the "B" board; the USB-A stick also works with pin changes (below) |
+| 1 | USB-C to USB-C **data** cable | — | short and known-good; see the cable note below |
+| 1 | Iambic or single-lever paddle with a 3.5 mm TRS plug, or a straight key with a TS (mono) plug | — | developed with a ZN-SL single-lever paddle |
+
+**Shield** (optional, but makes the key a tidy snap-together unit — see
+[shield/README.md](shield/README.md) for ordering the PCB and assembly)
+
+| Qty | Part | DigiKey P/N | Note |
+|-----|------|-------------|------|
+| 1 | Shield PCB (`shield/morsekey-shield-gerbers.zip`) | JLCPCB, PCBWay, OSH Park… | 2 layers, 1.6 mm, all fab defaults |
+| 1 | Same Sky SJ1-3523N 3.5 mm TRS jack | **CP1-3523N-ND** | through-hole, right angle |
+| 1 | Same Sky CPT-1207-5LTH-T piezo transducer | **2223-CPT-1207-5LTH-T-ND** | optional sidetone; ø12.5 mm, 5.0 mm pitch |
+| 2 | 1×9 female header socket, 2.54 mm (Sullins PPTC091LFBN-RC) | **S7007-ND** | on the shield |
+| 2 | 1×9 male pin header, 2.54 mm, breakaway | **S1012EC-09-ND** | soldered to the ESP32 board, pins down |
+| 2 | M2 screw + standoff | — | optional, for case mounting |
+
+Piezo alternates on the same footprint: TDK **PS1240P02BT**
+(445-2525-1-ND) or Same Sky **CPT-1206-3TH-T** (2223-CPT-1206-3TH-T-ND).
+Any ~12 mm two-pin piezo *transducer* (externally driven, not a
+self-oscillating "indicator"/active buzzer) with 5.0 mm pin spacing fits.
+A passive transducer has no electrical polarity — if it has a "+" mark or
+longer lead, put that in the square pad (GPIO5) by convention.
+
+No resistors or capacitors are needed: the paddle inputs use the ESP32's
+internal pull-ups, and the piezo is driven directly by PWM.
+
+**About the cable:** a worn or charge-grade cable can carry enough data
+to enumerate (the device name shows up) but not to flash or run MIDI —
+symptoms are `No serial data received` on upload, or the board appearing
+without a serial port. If anything USB acts strange, swap the cable first.
+
 ## Wiring the paddle
 
 The paddle connects to the board's edge header. With a 3.5mm TRS jack
@@ -50,7 +90,8 @@ named **MorseKey**.
 Two ways to use it — pick one in the settings menu ("MIDI" item):
 
 **PADDLE mode (default, recommended).** The board sends the raw paddle
-contacts as two MIDI notes (dit = note 60, dah = note 61) and Morse-It runs
+contacts as two MIDI notes (dit = note 18, dah = note 38, channel 1 —
+Morse-It's documented defaults) and Morse-It runs
 its own iambic keyer, sidetone and speed:
 1. In Morse-It, set the key type to **Iambic Paddle**, matching the A/B
    mode shown on the board (default: A).
@@ -61,7 +102,7 @@ its own iambic keyer, sidetone and speed:
    so the on-screen decode matches what the app hears.
 
 **KEYER mode.** The board does the iambic keying itself and sends the result
-as a single on/off note (note 62) — configure Morse-It as a **Straight Key**.
+as a single on/off note (note 18) — configure Morse-It as a **Straight Key**.
 What Morse-It receives is then exactly what the board's screen shows, and
 speed is controlled on the board.
 
@@ -81,9 +122,10 @@ Settings: speed (10–30 WPM), iambic A/B, MIDI mode (Paddle/Keyer), paddle
 swap, sidetone on/off. All persist across power cycles. With a straight
 key plugged in, navigate with the key and change values with BOOT taps.
 
-The screen shows a status bar (WPM,
-iambic mode, MIDI mode, USB state), the in-progress dit/dah pattern in
-yellow, and the decoded text in green. The RGB LED is red while keying, dim
+The screen shows a centered status bar (WPM, iambic mode, MIDI mode, USB
+state), the in-progress dit/dah pattern in yellow, and three lines of
+decoded text: finished words in white, the word being keyed in cyan, and a
+blinking cursor marking where the next character lands. The RGB LED is red while keying, dim
 cyan at idle in PADDLE mode, dim green in KEYER mode. Unrecognized patterns
 decode as `#`.
 
@@ -108,14 +150,28 @@ PSRAM **OPI PSRAM**. Install the "GFX Library for Arduino" library.
 device name comes from a `-DUSB_PRODUCT` flag that `flash.sh` sets; either
 name works fine in Morse-It.)
 
-If the board doesn't appear as a serial port when flashing (e.g. first
-flash), force the bootloader: hold **BOOT**, tap **RESET**, release BOOT.
+A brand-new board's factory firmware ignores the automatic reset, so the
+first flash needs the bootloader forced: unplug, hold **BOOT**, plug back
+in, release BOOT after a second or two (the screen stays dark), then run
+`./flash.sh`. After a forced flash, unplug/replug once to start the
+firmware. From then on `./flash.sh` resets the board itself; if an upload
+occasionally fails with `No serial data received`, just run it again. With
+several USB serial devices attached, pass the port explicitly:
+`./flash.sh /dev/cu.usbmodemXXXX`.
 
 ## Configuration
 
 Runtime settings live in the on-screen menu. Compile-time options in
 `morsekey/config.h`: paddle/piezo pins, MIDI note numbers, sidetone pitch,
-and defaults.
+defaults, and the paddle debounce time.
+
+**Debounce:** a contact change is accepted only after the line has been
+free of edges for `PADDLE_DEBOUNCE_MS` (6 ms). Edges are timestamped by
+interrupt, so even sub-millisecond bounce is seen. 6 ms was measured on a
+ZN-SL: press bounce lasts up to ~12 ms with quiet gaps under 4 ms inside
+it, and switching one contact induces brief glitches on the other line.
+A noisier paddle may need a little more; much more starts to add audible
+latency.
 
 ## Shield PCB
 

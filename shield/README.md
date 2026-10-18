@@ -56,7 +56,10 @@ mode returns automatically.
 1. Solder the male pin headers to the ESP32 board pointing **down** (away
    from the screen).
 2. Solder female sockets, the jack, and optionally the piezo to the shield
-   top. The "USB" silk label marks the USB-C end.
+   top. The "USB" silk label marks the USB-C end. The jack only fits one
+   way; the sockets are symmetric. The piezo transducer is unpolarized —
+   if it has a "+" mark or longer lead, put it in the square pad (GPIO5)
+   by convention.
 3. Snap the ESP32 board in, screen up, USB-C over the "USB" label.
 
 ## Regenerating
