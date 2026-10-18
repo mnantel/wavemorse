@@ -343,6 +343,7 @@ void loop() {
 
   decoder.poll(now, (!straightJack && keyer.keyed()) || skPaddle.down);
   pollButton(now);
+  display.tick(now);
 
   // Paddle passthrough: mirror debounced contacts as MIDI note on/off so
   // Morse-It's own iambic keyer does the timing and sidetone.

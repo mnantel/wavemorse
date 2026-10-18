@@ -38,7 +38,7 @@ public:
     _gfx->fillRect(0, 0, 320, 20, RGB565_DARKCYAN);
     _gfx->setTextColor(RGB565_WHITE);
     _gfx->setTextSize(2);
-    _gfx->setCursor(4, 3);
+    _gfx->setCursor((320 - (int)strlen(buf) * 12) / 2, 3); // 12px/char
     _gfx->print(buf);
   }
 
@@ -60,10 +60,13 @@ public:
   }
 
   // Decoded text. New characters are painted in place; the area is only
-  // fully redrawn when the buffer scrolls.
+  // fully redrawn when the buffer scrolls. The word being keyed is drawn in
+  // WORD_COLOR and turns white when the word gap (a space) completes it.
   void append(char c) {
     size_t n = strlen(_text);
-    if (n >= sizeof(_text) - 1) {
+    drawCursor(false);
+    // keep the last cell free so the cursor always has somewhere to sit
+    if (n >= COLS * ROWS - 1) {
       // drop the oldest line worth of text
       memmove(_text, _text + COLS, n - COLS + 1);
       n -= COLS;
@@ -71,9 +74,21 @@ public:
       _text[n + 1] = 0;
       render();
     } else {
+      if (c == ' ')
+        for (size_t i = wordStart(); i < n; i++)
+          drawTextChar(i, RGB565_WHITE); // word finished: recolor it
       _text[n] = c;
       _text[n + 1] = 0;
       drawTextChar(n);
+    }
+    showCursor();
+  }
+
+  // Blinks the cursor; call every loop while the main screen is shown.
+  void tick(uint32_t now) {
+    if (now - _blinkAt >= CURSOR_BLINK_MS) {
+      _blinkAt = now;
+      drawCursor(!_cursorOn);
     }
   }
 
@@ -124,22 +139,55 @@ public:
 
 private:
   static const int COLS = 17;   // 320 / 18px per size-3 char
-  static const int ROWS = 4;
+  static const int ROWS = 3;     // a 4th row sits too close to the bottom edge
   static const int TEXT_Y = 62;
   static const int LINE_H = 27; // 24px glyph + 3 leading
   static const int CHAR_W = 18;
+  static const uint16_t WORD_COLOR = RGB565_CYAN;
+  static const uint32_t CURSOR_BLINK_MS = 500;
+
+  static int cellX(size_t i) { return 2 + (i % COLS) * CHAR_W; }
+  static int cellY(size_t i) { return TEXT_Y + 2 + (i / COLS) * LINE_H; }
+
+  // Index of the first character of the word being keyed.
+  size_t wordStart() const {
+    const char *sp = strrchr(_text, ' ');
+    return sp ? sp - _text + 1 : 0;
+  }
 
   void drawTextChar(size_t i) {
-    _gfx->setTextColor(RGB565_WHITE);
+    drawTextChar(i, i >= wordStart() ? WORD_COLOR : RGB565_WHITE);
+  }
+
+  // Opaque background so a recolor overpaints the old glyph cleanly.
+  void drawTextChar(size_t i, uint16_t color) {
+    _gfx->setTextColor(color, RGB565_BLACK);
     _gfx->setTextSize(3);
-    _gfx->setCursor(2 + (i % COLS) * CHAR_W, TEXT_Y + 2 + (i / COLS) * LINE_H);
+    _gfx->setCursor(cellX(i), cellY(i));
     _gfx->write(_text[i]);
+  }
+
+  // Underline in the glyph cell's empty bottom rows (a size-3 glyph is
+  // 15x21 in an 18x24 cell), so it never overlaps a drawn character.
+  void drawCursor(bool on) {
+    size_t i = strlen(_text);
+    _gfx->fillRect(cellX(i), cellY(i) + 21, 15, 3,
+                   on ? WORD_COLOR : RGB565_BLACK);
+    _cursorOn = on;
+  }
+
+  // Show the cursor solid and restart the blink, so it stays visible
+  // while characters are arriving.
+  void showCursor() {
+    drawCursor(true);
+    _blinkAt = millis();
   }
 
   void render() {
     _gfx->fillRect(0, TEXT_Y, 320, 172 - TEXT_Y, RGB565_BLACK);
     for (size_t i = 0; i < strlen(_text); i++)
       drawTextChar(i);
+    showCursor();
   }
 
   Arduino_DataBus *_bus = nullptr;
@@ -147,4 +195,6 @@ private:
   char _text[COLS * ROWS + 1] = {0};
   char _lastPat[12] = {0};
   char _lastStatus[32] = {0};
+  bool _cursorOn = false;
+  uint32_t _blinkAt = 0;
 };
