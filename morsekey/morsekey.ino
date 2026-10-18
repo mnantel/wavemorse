@@ -60,7 +60,7 @@ uint32_t ringSince = 0, ringOpenSince = 0;
 
 struct StraightKey {
   bool down = false;
-  uint32_t t = 0, downAt = 0;
+  uint32_t downAt = 0;
 };
 StraightKey skPaddle;
 
@@ -127,11 +127,11 @@ void applySettings() {
 
 // Shared straight-key input handler: mirrors the contact to MIDI, sounds
 // the sidetone, and classifies press length as dit/dah for local decode.
+// `raw` must already be debounced.
 void pollStraightKey(StraightKey &sk, bool raw, uint32_t now) {
-  if (raw == sk.down || now - sk.t < PADDLE_DEBOUNCE_MS)
+  if (raw == sk.down)
     return;
   sk.down = raw;
-  sk.t = now;
   if (sk.down) {
     sk.downAt = now;
     midi.noteOn(NOTE_KEY, 127, MIDI_CH);
@@ -336,14 +336,15 @@ void loop() {
 
   if (straightJack) {
     // tip (physical DIT pin) is the straight key; iambic keyer is idle
-    pollStraightKey(skPaddle, digitalRead(PIN_DIT) == LOW, now);
+    keyer.pollContacts();
+    pollStraightKey(skPaddle, keyer.contact(PIN_DIT), now);
   } else {
     keyer.poll(now);
   }
 
   decoder.poll(now, (!straightJack && keyer.keyed()) || skPaddle.down);
-  pollButton(now);
   display.tick(now);
+  pollButton(now);
 
   // Paddle passthrough: mirror debounced contacts as MIDI note on/off so
   // Morse-It's own iambic keyer does the timing and sidetone.

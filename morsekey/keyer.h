@@ -1,6 +1,13 @@
 #pragma once
 #include <Arduino.h>
 
+// Paddle edge interrupt: stamps the time into the pin's edge timestamp.
+// A free function, not a class member: IRAM_ATTR on an inline member
+// trips "dangerous relocation" at link time.
+static void IRAM_ATTR keyerOnEdge(void *arg) {
+  *(volatile uint32_t *)arg = micros();
+}
+
 // Iambic keyer state machine (Curtis mode A/B) with debounced paddle inputs.
 //
 // poll() must be called continuously from loop(). Element starts/ends are
@@ -11,12 +18,20 @@ public:
   void (*onKeyDown)(char element) = nullptr; // '.' or '-'
   void (*onKeyUp)() = nullptr;
 
+  // Safe to call again (e.g. paddle swap): re-binds the edge interrupts.
   void begin(uint8_t ditPin, uint8_t dahPin, uint16_t debounceMs) {
+    if (_attached) {
+      detachInterrupt(_ditPin);
+      detachInterrupt(_dahPin);
+    }
     _ditPin = ditPin;
     _dahPin = dahPin;
     _debounceMs = debounceMs;
     pinMode(_ditPin, INPUT_PULLUP);
     pinMode(_dahPin, INPUT_PULLUP);
+    attachInterruptArg(_ditPin, keyerOnEdge, (void *)&_edgeDit, CHANGE);
+    attachInterruptArg(_dahPin, keyerOnEdge, (void *)&_edgeDah, CHANGE);
+    _attached = true;
   }
 
   void setWpm(uint8_t wpm) { _ditMs = 1200 / wpm; }
@@ -26,9 +41,14 @@ public:
   bool dahPressed() const { return _dah; }
   bool keyed() const { return _state == SENDING; }
 
+  // Straight-key mode: debounce the contacts without running the keyer, and
+  // read a physical pin's debounced state (independent of paddle swap).
+  void pollContacts() { debounce(); }
+  bool contact(uint8_t pin) const { return pin == _ditPin ? _dit : _dah; }
+
   void poll(uint32_t now) {
     bool wasDit = _dit, wasDah = _dah;
-    debounce(now);
+    debounce();
     bool ditEdge = _dit && !wasDit;
     bool dahEdge = _dah && !wasDah;
 
@@ -118,17 +138,32 @@ private:
     return 0;
   }
 
-  void debounce(uint32_t now) {
-    bool rawDit = digitalRead(_ditPin) == LOW;
-    bool rawDah = digitalRead(_dahPin) == LOW;
-    if (rawDit != _dit && now - _tDit >= _debounceMs) {
-      _dit = rawDit;
-      _tDit = now;
-    }
-    if (rawDah != _dah && now - _tDah >= _debounceMs) {
-      _dah = rawDah;
-      _tDah = now;
-    }
+  // Every contact edge is timestamped by interrupt, so bounces shorter than
+  // a loop iteration still count. A new level is accepted only once its pin
+  // has been edge-free for the debounce time: contact bounce (quiet gaps
+  // <4ms measured on a ZN-SL) and crosstalk glitches induced by the other
+  // contact switching never qualify; a real press or release always does.
+  void debounce() {
+    _dit = settled(_ditPin, _edgeDit, _dit);
+    _dah = settled(_dahPin, _edgeDah, _dah);
+  }
+
+  // The contact's new level, or `cur` if it hasn't been edge-free for the
+  // debounce time. The edge stamp is written by an interrupt, so it can be
+  // newer than a micros() read taken just before it: compare signed, then
+  // re-check after a moment so an edge whose interrupt is still landing
+  // can't slip a mid-bounce level through.
+  bool settled(uint8_t pin, volatile uint32_t &edge, bool cur) {
+    bool raw = digitalRead(pin) == LOW;
+    if (raw == cur)
+      return cur;
+    uint32_t e = edge;
+    if ((int32_t)(micros() - e) < (int32_t)(_debounceMs * 1000u))
+      return cur;
+    delayMicroseconds(20);
+    if (edge != e || (digitalRead(pin) == LOW) != raw)
+      return cur;
+    return raw;
   }
 
   uint8_t _ditPin = 0, _dahPin = 0;
@@ -142,5 +177,6 @@ private:
   bool _dit = false, _dah = false;
   bool _ditMem = false, _dahMem = false;
   bool _ditQ = false, _dahQ = false; // same-paddle tap queue
-  uint32_t _tDit = 0, _tDah = 0;
+  volatile uint32_t _edgeDit = 0, _edgeDah = 0; // micros() of last edge
+  bool _attached = false;
 };

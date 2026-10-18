@@ -44,5 +44,7 @@
 #define DEFAULT_SWAP false       // swap dit/dah paddles
 #define DEFAULT_TONE true        // piezo sidetone
 
-// Debounce time for paddle contacts, in ms.
-#define PADDLE_DEBOUNCE_MS 5
+// Debounce time for paddle contacts, in ms: a contact change is accepted
+// once the line has been edge-free this long. Measured on a ZN-SL: press
+// bounce lasts up to 12ms with quiet gaps under 4ms inside it.
+#define PADDLE_DEBOUNCE_MS 6
