@@ -54,13 +54,16 @@ HEADER_NETS = {"2": "DIT", "3": "DAH", "4": "SKEY", "5": "PIEZO", "G": "GND"}
 JACK_FACE_X = SHIELD_LEN            # jack body front face at the right edge
 JACK_CY = SHIELD_W / 2              # 10.16, centered between the rows
 
-# Piezo: TDK PS1240 footprint (5.0 mm pin pitch, 1.0 mm drills) - matches
+# Piezo: TDK PS1240 footprint (5.0 mm nominal pitch), drills widened to
+# slots below - matches
 # the in-stock Same Sky CPT-1207-5LTH-T / CPT-1206-3TH-T and TDK PS1240
 # (every available 12 mm TH piezo uses 5.0 mm pitch; none use 7.6).
 # Anchor is pad 1; pads at +0 and +5, body center at +2.5 (courtyard
 # r=6.35). Anchor 14.5 -> body center x=17, courtyard 10.65..23.35, clear
 # of the jack courtyard (~23.9) and the socket courtyards.
 PIEZO_X, PIEZO_Y = 14.5, SHIELD_W / 2
+PIEZO_SLOT = (2.0, 1.0)     # plated slot (x along pin axis, y), mm
+PIEZO_PAD = (3.0, 2.0)
 
 TRACK_W = 0.35
 
@@ -209,6 +212,16 @@ piezo = load_fp("Buzzer_Beeper", "Buzzer_TDK_PS1240P02BT_D12.2mm_H6.5mm")
 place(piezo, "BZ1", PIEZO_X, PIEZO_Y, 0)
 pad_named(piezo, 1).SetNet(net("PIEZO"))
 pad_named(piezo, 2).SetNet(net("GND"))
+# Real parts didn't fit the nominal 5.0 mm round holes: CPT-1207 pin pitch
+# is 5.0 +/-0.5 mm. Plated slots along the pin axis take ~3.7-6.3 mm pitch.
+# Pad 1 stays rectangular (pin-1 / "+" marker); pads 3.0 long so the GND
+# track at x=16.62 between them keeps its clearance.
+for num, shape in ((1, pcbnew.PAD_SHAPE_RECTANGLE), (2, pcbnew.PAD_SHAPE_OVAL)):
+    p = pad_named(piezo, num)
+    p.SetDrillShape(pcbnew.PAD_DRILL_SHAPE_OBLONG)
+    p.SetDrillSize(VECTOR2I(MM(PIEZO_SLOT[0]), MM(PIEZO_SLOT[1])))
+    p.SetShape(shape)
+    p.SetSize(VECTOR2I(MM(PIEZO_PAD[0]), MM(PIEZO_PAD[1])))
 
 # --- mounting holes (M2, left corners, clear of everything) --------------------
 for ref, x, y in (("H1", 2.5, 2.5), ("H2", 2.5, SHIELD_W - 2.5)):

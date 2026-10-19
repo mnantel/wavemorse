@@ -50,7 +50,8 @@ through-hole — no surface-mount soldering.
 Piezo alternates on the same footprint: TDK **PS1240P02BT**
 (445-2525-1-ND) or Same Sky **CPT-1206-3TH-T** (2223-CPT-1206-3TH-T-ND).
 Any ~12 mm two-pin piezo *transducer* (externally driven, not a
-self-oscillating "indicator"/active buzzer) with 5.0 mm pin spacing fits.
+self-oscillating "indicator"/active buzzer) with ~5 mm pin spacing fits —
+the shield's piezo holes are slots that take about 4–6 mm.
 A passive transducer has no electrical polarity — if it has a "+" mark or
 longer lead, put that in the square pad (GPIO5) by convention.
 

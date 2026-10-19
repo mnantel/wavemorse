@@ -31,10 +31,13 @@ while it's still free.
 | 2 | 1×9 male pin header, 2.54 mm | e.g. **S1012EC-09-ND** (breakaway) | solder to the ESP32 board, pins down |
 | 2 | M2 screw + standoff | — | optional — case mounting, USB end corners |
 
-Piezo alternates (same 5.0 mm-pitch footprint): TDK **PS1240P02BT**
+Piezo alternates (same footprint): TDK **PS1240P02BT**
 (DigiKey 445-2525-1-ND, often backordered) or Same Sky **CPT-1206-3TH-T**
 (2223-CPT-1206-3TH-T-ND). Any ~12 mm two-pin piezo *transducer*
-(externally driven — not an "indicator") with 5.0 mm pin spacing fits.
+(externally driven — not an "indicator") with ~5 mm pin spacing fits:
+the piezo pads are plated slots, so pin spacing anywhere from about 4 to
+6 mm drops in (datasheet pitch is 5.0 ±0.5 mm, and the original round
+holes at exactly 5.0 mm were too tight for real parts).
 
 ## Connections (all done by the PCB)
 
